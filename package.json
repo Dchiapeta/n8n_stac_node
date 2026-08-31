@@ -47,8 +47,8 @@
 		"@n8n/ai-node-sdk": "0.26.6",
 		"@n8n/node-cli": "*",
 		"eslint": "9.39.4",
-		"n8n-workflow": "2.36.4",
-		"prettier": "3.8.3",
+		"n8n-workflow": "2.37.1",
+		"prettier": "3.9.6",
 		"release-it": "20.2.0",
 		"typescript": "5.9.3"
 	},
