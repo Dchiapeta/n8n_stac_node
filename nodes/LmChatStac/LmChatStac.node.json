@@ -1,0 +1,18 @@
+{
+	"node": "n8n-nodes-stac.lmChatStac",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"categories": ["AI"],
+	"resources": {
+		"credentialDocumentation": [
+			{
+				"url": "https://trystac.com/docs"
+			}
+		],
+		"primaryDocumentation": [
+			{
+				"url": "https://trystac.com/docs"
+			}
+		]
+	}
+}
