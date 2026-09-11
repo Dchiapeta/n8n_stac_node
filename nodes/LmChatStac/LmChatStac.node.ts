@@ -16,6 +16,14 @@ type ModelOptions = {
 	maxRetries?: number;
 };
 
+// "Options" é uma collection: enquanto o usuário não ADICIONA a opção, ela não
+// existe no objeto e o `default` declarado na UI nunca chega a ser lido. Sem
+// este fallback a request sai sem max_tokens e quem decide o teto é o servidor
+// — com thinking ligado, milhares de tokens de raciocínio para uma resposta de
+// duas linhas. O mesmo número nos dois lugares para a UI não mentir sobre o
+// valor efetivo.
+const DEFAULT_MAX_TOKENS = 2048;
+
 export class LmChatStac implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'Stac Chat Model',
@@ -71,8 +79,8 @@ export class LmChatStac implements INodeType {
 						displayName: 'Maximum Number of Tokens',
 						name: 'maxTokens',
 						type: 'number',
-						default: 2048,
-						description: 'Número máximo de tokens gerados na resposta',
+						default: DEFAULT_MAX_TOKENS,
+						description: 'Teto de tokens da resposta (padrão: 2048), não uma meta de geração',
 					},
 					{
 						displayName: 'Timeout',
@@ -124,7 +132,9 @@ export class LmChatStac implements INodeType {
 			apiKey: credentials.apiKey as string,
 			model,
 			temperature: options.temperature,
-			maxTokens: options.maxTokens,
+			maxTokens: options.maxTokens ?? 2048,
+			streaming: true,
+			streamUsage: true,
 			timeout: options.timeout,
 			maxRetries: options.maxRetries,
 		});
