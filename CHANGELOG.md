@@ -1,7 +1,9 @@
 # Changelog
 
-## 0.1.1 — 2026-09-15
+## 1.1.0 — 2026-10-16
 
+- Ícone do node e da credencial trocado pelo logo novo da Stac, com variantes para o tema
+  claro e o escuro do n8n.
 - `Maximum Number of Tokens` passa a valer mesmo sem a opção adicionada em **Options**
   (fallback 2048). Na 0.1.0 a request saía sem `max_tokens` e o servidor aplicava o piso
   de 8000 com thinking ligado — respostas curtas viravam minutos de raciocínio e morriam
