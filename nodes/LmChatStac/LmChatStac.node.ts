@@ -9,9 +9,12 @@ import {
 	type SupplyData,
 } from 'n8n-workflow';
 
+type ReasoningEffort = 'none' | 'low' | 'medium' | 'high';
+
 type ModelOptions = {
 	temperature?: number;
 	maxTokens?: number;
+	reasoningEffort?: ReasoningEffort;
 	timeout?: number;
 	maxRetries?: number;
 };
@@ -23,6 +26,16 @@ type ModelOptions = {
 // duas linhas. O mesmo número nos dois lugares para a UI não mentir sobre o
 // valor efetivo.
 const DEFAULT_MAX_TOKENS = 2048;
+
+// Abaixo do piso do gateway (8000) o max_tokens só é seguro com o thinking
+// desligado: com raciocínio pedido, o gateway respeita o teto baixo e o
+// raciocínio é cortado no meio — resposta vazia. Então, com low/medium/high e
+// sem Max Tokens explícito, a request sai SEM max_tokens e vale o piso.
+function resolveMaxTokens(options: ModelOptions): number | undefined {
+	if (options.maxTokens !== undefined) return options.maxTokens;
+	if (options.reasoningEffort && options.reasoningEffort !== 'none') return undefined;
+	return DEFAULT_MAX_TOKENS;
+}
 
 export class LmChatStac implements INodeType {
 	description: INodeTypeDescription = {
@@ -67,6 +80,43 @@ export class LmChatStac implements INodeType {
 				default: {},
 				options: [
 					{
+						displayName: 'Max Retries',
+						name: 'maxRetries',
+						type: 'number',
+						default: 2,
+						description: 'Número máximo de tentativas em caso de falha',
+					},
+					{
+						displayName: 'Maximum Number of Tokens',
+						name: 'maxTokens',
+						type: 'number',
+						default: DEFAULT_MAX_TOKENS,
+						description:
+							'Teto de tokens da resposta, não uma meta de geração. Sem esta opção: 2048, ou o piso do servidor (8000) quando Reasoning Effort é Low, Medium ou High. Com raciocínio ligado, valores abaixo de 8000 podem cortar o raciocínio no meio.',
+					},
+					{
+						displayName: 'Reasoning Effort',
+						name: 'reasoningEffort',
+						type: 'options',
+						options: [
+							{
+								name: 'None',
+								value: 'none',
+								description: 'Responde direto, sem etapa de raciocínio',
+							},
+							{ name: 'Low', value: 'low', description: 'Raciocínio curto' },
+							{ name: 'Medium', value: 'medium', description: 'Raciocínio moderado' },
+							{
+								name: 'High',
+								value: 'high',
+								description: 'Raciocínio mais profundo, respostas mais lentas',
+							},
+						],
+						default: 'medium',
+						description:
+							'Nível de raciocínio do modelo. Sem esta opção vale o nível configurado na chave de API.',
+					},
+					{
 						displayName: 'Sampling Temperature',
 						name: 'temperature',
 						type: 'number',
@@ -76,26 +126,12 @@ export class LmChatStac implements INodeType {
 							'Controla a aleatoriedade: valores menores geram respostas mais determinísticas e repetitivas',
 					},
 					{
-						displayName: 'Maximum Number of Tokens',
-						name: 'maxTokens',
-						type: 'number',
-						default: DEFAULT_MAX_TOKENS,
-						description: 'Teto de tokens da resposta (padrão: 2048), não uma meta de geração',
-					},
-					{
 						displayName: 'Timeout',
 						name: 'timeout',
 						type: 'number',
 						default: 120000,
 						description:
 							'Tempo máximo de espera em milissegundos. Em saturação a Stac degrada velocidade, então valores baixos podem cortar respostas válidas.',
-					},
-					{
-						displayName: 'Max Retries',
-						name: 'maxRetries',
-						type: 'number',
-						default: 2,
-						description: 'Número máximo de tentativas em caso de falha',
 					},
 				],
 			},
@@ -132,7 +168,13 @@ export class LmChatStac implements INodeType {
 			apiKey: credentials.apiKey as string,
 			model,
 			temperature: options.temperature,
-			maxTokens: options.maxTokens ?? 2048,
+			maxTokens: resolveMaxTokens(options),
+			// Via additionalParams (modelKwargs) e não `reasoning`: o LangChain só
+			// envia `reasoning` para nomes de modelo da OpenAI (o1, gpt-5...) e o
+			// descartaria em silêncio para os modelos da Stac.
+			additionalParams: options.reasoningEffort
+				? { reasoning_effort: options.reasoningEffort }
+				: undefined,
 			streaming: true,
 			streamUsage: true,
 			timeout: options.timeout,

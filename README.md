@@ -30,7 +30,8 @@ Parameters:
 | --- | --- |
 | **Model** | Loaded dynamically from your Stac plan via `GET /models`, so the dropdown only lists models you can actually call |
 | **Sampling Temperature** | `0`–`2`. Lower values make responses more deterministic |
-| **Maximum Number of Tokens** | Upper bound on tokens generated in the response |
+| **Maximum Number of Tokens** | Upper bound on tokens generated in the response. When the option isn't added, the node sends `2048` — or nothing (the server's floor of `8000` applies) when **Reasoning Effort** is `low`, `medium` or `high`. With reasoning on, values below `8000` can cut the reasoning off mid-way |
+| **Reasoning Effort** | `none`, `low`, `medium` or `high`, sent as `reasoning_effort`. When the option isn't added, the reasoning level configured on your API key applies |
 | **Timeout** | Request timeout in milliseconds (default `120000`). Under saturation Stac degrades speed, so aggressive values can cut off otherwise valid responses |
 | **Max Retries** | How many times to retry a failed request (default `2`) |
 
@@ -46,7 +47,7 @@ Authentication uses a bearer token (`Authorization: Bearer <key>`). The credenti
 
 ## Compatibility
 
-Developed and tested against **n8n 2.36.9**.
+Developed against **n8n 2.43.7** (`@n8n/ai-node-sdk` 0.33.5); versions up to 1.1.0 were tested against **n8n 2.36.9**.
 
 The node builds the model through `supplyModel` from `@n8n/ai-node-sdk`, which n8n provides at runtime — the package declares `@n8n/ai-node-sdk` and `n8n-workflow` as peer dependencies and bundles no LangChain code of its own. This keeps a single `@langchain/core` instance in the process and means model executions show up in n8n's own log/tracing view. Older n8n releases ship earlier versions of that SDK and have not been tested.
 
@@ -62,6 +63,14 @@ New to n8n? Start with the [Try it out](https://docs.n8n.io/try-it-out/) documen
 * [Stac documentation](https://trystac.com/docs)
 
 ## Version history
+
+### 1.2.0
+
+Adds the **Reasoning Effort** option and stops sending the `2048` token fallback when reasoning is requested, so the reasoning step isn't truncated. Dev dependencies aligned with n8n 2.43.7.
+
+### 1.1.0
+
+New Stac logo (light and dark variants), `Maximum Number of Tokens` defaults to `2048` even when the option isn't added, and streaming responses with usage. Tagged but never published to npm — its changes ship in 1.2.0.
 
 ### 0.1.0
 
