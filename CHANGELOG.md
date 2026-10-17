@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.4.0 — 2026-10-17
+
+- Node **Stac** reorganizado no formato do node da OpenAI, com todas as rotas da API:
+  - **Text → Message a model** (`/chat/completions`): lista de mensagens, modelo carregado
+    do `/models` (vazio = modelo da stack), Max Tokens, Output JSON, Reasoning Effort,
+    Temperature e Top P.
+  - **Image → Analyze image** (chat com imagem, de campo binário ou URL baixada pelo n8n),
+    **Edit image** (`/images/edits`, até 4 referências), **Extract data from an image**
+    (`/images/extract`) e **Generate an image** (`/images/generations`). Imagem gerada sai
+    em campo binário; seed tratada como texto para não perder dígitos acima de 2^53.
+  - **Document → Extract data** e **Generate a PDF** (como na 1.3.0).
+  - **Model → List models** (`/models`, um item por modelo).
+- Versão do node 1.1. A 1 mantém Document como resource padrão, então workflows salvos
+  na 1.3.0 abrem iguais; nodes novos começam em Text.
+- Código do node separado em `descriptions.ts` (parâmetros) e `transport.ts` (requests,
+  multipart e erros).
+
 ## 1.3.0 — 2026-10-17
 
 - Novo node **Stac** (node normal, resource **Document**):
