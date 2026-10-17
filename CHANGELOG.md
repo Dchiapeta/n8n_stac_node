@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.3.0 — 2026-10-17
+
+- Novo node **Stac** (node normal, resource **Document**):
+  - **Extract Data**: PDF ou imagem do campo binário → JSON validado pelo schema, via
+    `/v1/documents/extract` ou `/v1/images/extract` (detectado pelo MIME type). Vários
+    arquivos numa extração com campos separados por vírgula (Pro em diante).
+    **Simplify Output** devolve só os campos extraídos.
+  - **Generate PDF**: `/v1/documents/generate` a partir de HTML pronto ou de uma
+    instrução para o modelo; o PDF sai num campo binário.
+  - Erros da API chegam com a mensagem dela (`detail`) e o status HTTP.
+- Ícones renomeados para `icons/stac-logo.svg` e `icons/stac-logo.dark.svg`. A variante
+  clara mantinha o caminho da 0.1.0 (`icons/stac.svg`), e o n8n continuava mostrando o
+  logo antigo em cache; com o nome novo a URL do ícone muda.
+
 ## 1.2.0 — 2026-10-17
 
 - Nova opção **Reasoning Effort** (`none`, `low`, `medium`, `high`), enviada como

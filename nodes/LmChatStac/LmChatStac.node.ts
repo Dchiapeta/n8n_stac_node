@@ -41,7 +41,7 @@ export class LmChatStac implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'Stac Chat Model',
 		name: 'lmChatStac',
-		icon: { light: 'file:../../icons/stac.svg', dark: 'file:../../icons/stac.dark.svg' },
+		icon: { light: 'file:../../icons/stac-logo.svg', dark: 'file:../../icons/stac-logo.dark.svg' },
 		group: ['transform'],
 		version: [1],
 		description: 'Modelos open-source com preço fixo mensal via Stac',

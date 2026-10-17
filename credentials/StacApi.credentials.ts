@@ -13,7 +13,7 @@ export class StacApi implements ICredentialType {
 
 	documentationUrl = 'https://trystac.com/docs';
 
-	icon: Icon = { light: 'file:../icons/stac.svg', dark: 'file:../icons/stac.dark.svg' };
+	icon: Icon = { light: 'file:../icons/stac-logo.svg', dark: 'file:../icons/stac-logo.dark.svg' };
 
 	properties: INodeProperties[] = [
 		{
