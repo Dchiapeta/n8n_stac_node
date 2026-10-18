@@ -175,6 +175,16 @@ export class Stac implements INodeType {
 					...(response.data ?? []).map((model) => ({ name: model.id, value: model.id })),
 				];
 			},
+			// Com uma chave do plano de imagem o /models já lista só modelos de imagem.
+			async getImageModels(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				const credentials = await this.getCredentials('stacApi');
+				const response = (await this.helpers.httpRequestWithAuthentication.call(this, 'stacApi', {
+					method: 'GET',
+					url: `${String(credentials.baseUrl).replace(/\/+$/, '')}/models`,
+					json: true,
+				})) as { data?: Array<{ id: string }> };
+				return (response.data ?? []).map((model) => ({ name: model.id, value: model.id }));
+			},
 		},
 	};
 
@@ -331,7 +341,9 @@ async function generateImage(this: IExecuteFunctions, i: number): Promise<INodeE
 	const options = this.getNodeParameter('imageOptions', i, {}) as ImageOptions;
 	const seed = validSeed.call(this, i, options.seed);
 
+	const model = (this.getNodeParameter('imageModelId', i, '') as string).trim();
 	const payload: IDataObject = {};
+	if (model) payload.model = model;
 	if (prompt.trim()) payload.prompt = prompt;
 	if (options.size) payload.size = options.size;
 	if (options.steps !== undefined) payload.steps = options.steps;
@@ -361,7 +373,9 @@ async function editImage(this: IExecuteFunctions, i: number): Promise<INodeExecu
 	const options = this.getNodeParameter('imageOptions', i, {}) as ImageOptions;
 	const seed = validSeed.call(this, i, options.seed);
 
+	const model = (this.getNodeParameter('imageModelId', i, '') as string).trim();
 	const parts: FieldPart[] = [];
+	if (model) parts.push({ field: 'model', value: model });
 	if (prompt.trim()) parts.push({ field: 'prompt', value: prompt });
 	if (options.size) parts.push({ field: 'size', value: options.size });
 	if (options.steps !== undefined) parts.push({ field: 'steps', value: String(options.steps) });

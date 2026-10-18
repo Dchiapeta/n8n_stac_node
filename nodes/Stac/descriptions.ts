@@ -478,7 +478,23 @@ const imageOptions = (operation: string): INodeProperties => ({
 const promptDescription =
 	'Até 512 tokens: o que passar disso é cortado em silêncio. Vazio = usa o prompt configurado na chave.';
 
+// Nas rotas de imagem o modelo é obrigatório na prática: com as máquinas de
+// imagem desligadas o gateway não tem reserva e responde "modelo não disponível"
+// sem um `model` da lista. Por isso aqui não há a opção "Stack Default Model".
+const imageModelProperty = (operation: string): INodeProperties => ({
+	displayName: 'Model Name or ID',
+	name: 'imageModelId',
+	type: 'options',
+	typeOptions: { loadOptionsMethod: 'getImageModels' },
+	required: true,
+	default: '',
+	displayOptions: show('image', [operation]),
+	description:
+		'Modelo de imagem a usar (precisa de uma chave do plano de imagem). Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
+});
+
 const generateImageProperties: INodeProperties[] = [
+	imageModelProperty('generate'),
 	{
 		displayName: 'Prompt',
 		name: 'prompt',
@@ -502,6 +518,7 @@ const generateImageProperties: INodeProperties[] = [
 ];
 
 const editImageProperties: INodeProperties[] = [
+	imageModelProperty('edit'),
 	{
 		displayName: 'Input Binary Field(s)',
 		name: 'binaryPropertyName',

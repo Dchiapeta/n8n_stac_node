@@ -58,7 +58,7 @@ A regular node (input and output on the canvas) that covers the Stac API endpoin
 
 **Extract data** (document or image) — PDF or image in, JSON validated against your JSON Schema out. OCR runs automatically (scanned PDF pages; every image). Put every field in `required` and use nullable types (`["string", "null"]`) on the ones that can be missing, or the model invents a value. Several files in one extraction: comma-separated binary fields (Pro plan and up). **Simplify Output** returns only the extracted fields. Options: **Context**, **System Prompt**, **Max Tokens** (default `4000`).
 
-**Generate an image / Edit image** — needs a key from a stack on the image plan. The PNG goes into a binary field and the JSON carries `meta` (effective size, steps, seed…) and `usage`. Edit takes up to 4 reference images (comma-separated binary fields). Options: **Size** (`1024x1024`, `1536x1024`, `1024x1536`), **Steps** (1–8), **Guidance Scale** (0–20), **Seed** (kept as text, so the full 0–2^64−1 range survives), **File Name**. An empty prompt uses the prompt configured on the key; prompts are cut at 512 tokens.
+**Generate an image / Edit image** — needs a key from a stack on the image plan. Pick the image model in **Model** (loaded from `GET /models`). The PNG goes into a binary field and the JSON carries `meta` (effective size, steps, seed…) and `usage`. Edit takes up to 4 reference images (comma-separated binary fields). Options: **Size** (`1024x1024`, `1536x1024`, `1024x1536`), **Steps** (1–8), **Guidance Scale** (0–20), **Seed** (kept as text, so the full 0–2^64−1 range survives), **File Name**. An empty prompt uses the prompt configured on the key; prompts are cut at 512 tokens.
 
 **Generate a PDF** — from ready-made HTML (no model involved, no tokens spent) or from an instruction the model turns into HTML. HTML must be self-contained: external URLs are never fetched — use `data:` URIs.
 
@@ -94,6 +94,10 @@ New to n8n? Start with the [Try it out](https://docs.n8n.io/try-it-out/) documen
 * [Stac documentation](https://trystac.com/docs)
 
 ## Version history
+
+### 1.4.1
+
+**Generate an image** and **Edit image** get a required **Model** field, loaded from the image key's `GET /models` and sent as `model`.
 
 ### 1.4.0
 

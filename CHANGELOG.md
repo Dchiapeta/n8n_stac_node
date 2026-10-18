@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.4.1 — 2026-10-17
+
+- **Generate an image** e **Edit image** ganham o campo **Model** (obrigatório),
+  carregado do `/models` da chave de imagem e enviado como `model`. Sem ele, com as
+  máquinas de imagem desligadas, o gateway respondia "o modelo pedido não está
+  disponível".
+
 ## 1.4.0 — 2026-10-17
 
 - Node **Stac** reorganizado no formato do node da OpenAI, com todas as rotas da API:
