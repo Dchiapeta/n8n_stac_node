@@ -50,6 +50,7 @@ A regular node (input and output on the canvas) that covers the Stac API endpoin
 | | Generate an image | `POST /images/generations` (image plan) |
 | **Document** | Extract data from a document | `POST /documents/extract` (or `/images/extract` for an image) |
 | | Generate a PDF | `POST /documents/generate` |
+| **Decision** | Make a decision | `POST /decisions` |
 | **Model** | List models | `GET /models` |
 
 **Message a model** — a list of messages (`user`, `assistant`, `system`; a `system` message replaces the stack's system prompt). **Model** is loaded from `GET /models`; leave it on *Stack Default Model* to use your stack's own. Options: **Maximum Number of Tokens** (not sent unless added — the server's 8000 floor applies), **Output JSON** (`response_format: json_object`), **Reasoning Effort** (`none`/`low`/`medium`/`high`; not added = the key's level), **Sampling Temperature**, **Top P**. **Simplify Output** returns `content` and `finish_reason`; with Output JSON on, `content` is parsed into an object.
@@ -61,6 +62,8 @@ A regular node (input and output on the canvas) that covers the Stac API endpoin
 **Generate an image / Edit image** — needs a key from a stack on the image plan. Pick the image model in **Model** (loaded from `GET /models`). The PNG goes into a binary field and the JSON carries `meta` (effective size, steps, seed…) and `usage`. Edit takes up to 4 reference images (comma-separated binary fields). Options: **Size** (`1024x1024`, `1536x1024`, `1024x1536`), **Steps** (1–8), **Guidance Scale** (0–20), **Seed** (kept as text, so the full 0–2^64−1 range survives), **File Name**. An empty prompt uses the prompt configured on the key; prompts are cut at 512 tokens.
 
 **Generate a PDF** — from ready-made HTML (no model involved, no tokens spent) or from an instruction the model turns into HTML. HTML must be self-contained: external URLs are never fetched — use `data:` URIs.
+
+**Make a decision** — typed answers from a decision model (Jev, by TypeSafe) instead of free text. **State** is a JSON object describing the situation (build it from the item with an expression); **Questions** is a JSON object of named questions, each with a `type` (`choice`, `noul` or `score`), `instructions` and `criteria`. The response carries one answer per question with its choice, confidence and probabilities. **Model** is a text field (default `typesafe/jev-1.13`) because `GET /models` doesn't list decision models; a model outside your plan comes back as `403`, and an unknown one as `404` listing the accepted ones. **Simplify Output** returns only the answers; off, it also returns `usage`.
 
 All operations wait up to 5 minutes for the API. API errors surface with the API's own message and HTTP status (for example, `403` when an image action runs with a text-plan key).
 
@@ -94,6 +97,10 @@ New to n8n? Start with the [Try it out](https://docs.n8n.io/try-it-out/) documen
 * [Stac documentation](https://trystac.com/docs)
 
 ## Version history
+
+### 1.5.0
+
+New **Decision → Make a decision** action on the **Stac** node, for the Jev typed-decision model (`POST /decisions`).
 
 ### 1.4.1
 

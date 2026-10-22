@@ -150,12 +150,13 @@ export class Stac implements INodeType {
 		version: [1, 1.1],
 		defaultVersion: 1.1,
 		subtitle: '={{ $parameter.operation + ": " + $parameter.resource }}',
-		description: 'Texto, imagem, OCR e PDF com os modelos da Stac',
+		description: 'Texto, imagem, OCR, PDF e decisões com os modelos da Stac',
 		defaults: { name: 'Stac' },
 		inputs: [NodeConnectionTypes.Main],
 		outputs: [NodeConnectionTypes.Main],
 		// Exigido pelo lint (o tipo só aceita true). Como tool, as operações que
-		// dependem de binário na entrada não servem; Message a Model e Generate PDF sim.
+		// dependem de binário na entrada não servem; Message a Model, Make a
+		// Decision e Generate PDF sim.
 		usableAsTool: true,
 		credentials: [{ name: 'stacApi', required: true }],
 		properties: stacProperties,
@@ -210,6 +211,8 @@ export class Stac implements INodeType {
 					returnData.push(await editImage.call(this, i));
 				} else if (key === 'document:generatePdf') {
 					returnData.push(await generatePdf.call(this, i));
+				} else if (key === 'decision:decide') {
+					returnData.push(await makeDecision.call(this, i));
 				} else if (key === 'model:list') {
 					returnData.push(...(await listModels.call(this, i)));
 				} else {
@@ -510,6 +513,61 @@ async function generatePdf(this: IExecuteFunctions, i: number): Promise<INodeExe
 	return {
 		json: { fileName, mimeType: 'application/pdf', fileSize: pdf.length },
 		binary: { [outputField]: binary },
+		pairedItem: { item: i },
+	};
+}
+
+// ---------- Decision ----------
+
+// O parâmetro `json` chega como texto, ou já como objeto quando vem de expressão.
+function jsonObject(
+	this: IExecuteFunctions,
+	i: number,
+	name: string,
+	label: string,
+): IDataObject {
+	const value = this.getNodeParameter(name, i);
+	let parsed: unknown = value;
+	if (typeof value === 'string') {
+		try {
+			parsed = JSON.parse(value);
+		} catch {
+			throw new NodeOperationError(this.getNode(), `${label} não é um JSON válido`, {
+				itemIndex: i,
+			});
+		}
+	}
+	if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+		throw new NodeOperationError(this.getNode(), `${label} deve ser um objeto JSON`, {
+			itemIndex: i,
+		});
+	}
+	return parsed as IDataObject;
+}
+
+async function makeDecision(this: IExecuteFunctions, i: number): Promise<INodeExecutionData> {
+	const model = (this.getNodeParameter('decisionModel', i) as string).trim();
+	const state = jsonObject.call(this, i, 'state', 'State');
+	const questions = jsonObject.call(this, i, 'questions', 'Questions');
+	if (Object.keys(questions).length === 0) {
+		throw new NodeOperationError(this.getNode(), 'Adicione ao menos uma pergunta em Questions', {
+			itemIndex: i,
+		});
+	}
+
+	const response = await stacJson.call(this, i, {
+		method: 'POST',
+		path: '/decisions',
+		headers: { 'Content-Type': 'application/json' },
+		body: Buffer.from(JSON.stringify({ model, state, questions }), 'utf8'),
+	});
+	const simplify = this.getNodeParameter('simplify', i, true) as boolean;
+	const answers = response.answers;
+	return {
+		json:
+			simplify && answers !== null && typeof answers === 'object' && !Array.isArray(answers)
+				? (answers as IDataObject)
+				: response,
 		pairedItem: { item: i },
 	};
 }

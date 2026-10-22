@@ -1,6 +1,6 @@
 {
 	"name": "n8n-nodes-stac",
-	"version": "1.4.1",
+	"version": "1.5.0",
 	"description": "Nodes n8n para a Stac: modelos open-source com preço fixo mensal",
 	"license": "MIT",
 	"homepage": "https://trystac.com",

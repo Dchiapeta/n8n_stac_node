@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.5.0 — 2026-10-22
+
+- Node **Stac** ganha o resource **Decision → Make a decision** (`POST /v1/decisions`),
+  para o Jev (modelo de decisão tipada da TypeSafe): **State** e **Questions** em JSON,
+  com os mesmos exemplos do Playground; o modelo é um campo de texto (padrão
+  `typesafe/jev-1.13`), porque o `/models` não lista os modelos de decisão.
+  **Simplify Output** devolve só as `answers`. Também disponível como tool do AI Agent.
+
 ## 1.4.1 — 2026-10-17
 
 - **Generate an image** e **Edit image** ganham o campo **Model** (obrigatório),

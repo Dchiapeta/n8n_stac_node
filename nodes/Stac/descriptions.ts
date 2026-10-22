@@ -29,6 +29,7 @@ const resourceOptions = [
 	{ name: 'Text', value: 'text' },
 	{ name: 'Image', value: 'image' },
 	{ name: 'Document', value: 'document' },
+	{ name: 'Decision', value: 'decision' },
 	{ name: 'Model', value: 'model' },
 ];
 
@@ -129,6 +130,23 @@ export const operationProperties: INodeProperties[] = [
 			},
 		],
 		default: 'extract',
+	},
+	{
+		displayName: 'Operation',
+		name: 'operation',
+		type: 'options',
+		noDataExpression: true,
+		displayOptions: { show: { resource: ['decision'] } },
+		options: [
+			{
+				name: 'Make a Decision',
+				value: 'decide',
+				description:
+					'Responde perguntas tipadas (choice, noul, score) sobre um estado, com probabilidades',
+				action: 'Make a decision',
+			},
+		],
+		default: 'decide',
 	},
 	{
 		displayName: 'Operation',
@@ -646,6 +664,85 @@ const generatePdfProperties: INodeProperties[] = [
 	},
 ];
 
+// ---------- Decision → Make a Decision ----------
+
+// Mesmos exemplos do Playground do painel (playground-endpoints.ts).
+const DEFAULT_DECISION_STATE = JSON.stringify(
+	{
+		customer_tier: 'enterprise',
+		ticket: 'My checkout page shows a blank screen after I click Pay.',
+	},
+	null,
+	2,
+);
+
+const DEFAULT_DECISION_QUESTIONS = JSON.stringify(
+	{
+		is_bug: {
+			type: 'noul',
+			instructions: 'Is the customer reporting a software defect?',
+			criteria: {
+				true: 'The customer describes broken or unexpected product behavior.',
+				false: 'The customer is asking a question or requesting a feature.',
+			},
+		},
+		team: {
+			type: 'choice',
+			instructions: 'Which team should own this ticket?',
+			criteria: {
+				payments: 'Checkout, billing, or payment processing issues.',
+				frontend: 'Rendering, layout, or browser compatibility issues.',
+			},
+		},
+		urgency: {
+			type: 'score',
+			instructions: 'How urgent is this ticket?',
+			criteria: ['Can wait', 'This week', 'Blocking revenue now'],
+		},
+	},
+	null,
+	2,
+);
+
+const decisionProperties: INodeProperties[] = [
+	{
+		// Texto e não dropdown: o /models não lista os modelos de decisão (só os
+		// de texto ou imagem da chave), e o /decisions recusa os de chat.
+		displayName: 'Model',
+		name: 'decisionModel',
+		type: 'string',
+		required: true,
+		default: 'typesafe/jev-1.13',
+		displayOptions: show('decision', ['decide']),
+		description:
+			'Modelo de decisão do seu plano (o Jev, da TypeSafe). Um modelo fora da lista volta com os aceitos na mensagem de erro.',
+	},
+	{
+		displayName: 'State',
+		name: 'state',
+		type: 'json',
+		required: true,
+		default: DEFAULT_DECISION_STATE,
+		displayOptions: show('decision', ['decide']),
+		description:
+			'Objeto JSON com a situação a avaliar. Use uma expressão para montar com os dados do item.',
+	},
+	{
+		displayName: 'Questions',
+		name: 'questions',
+		type: 'json',
+		required: true,
+		default: DEFAULT_DECISION_QUESTIONS,
+		displayOptions: show('decision', ['decide']),
+		description:
+			'Objeto JSON com as perguntas, por nome. Cada uma tem type (choice, noul ou score), instructions e criteria.',
+	},
+	{
+		...simplifyProperty('decision', ['decide']),
+		description: 'Whether to return only the answers instead of the full response with usage',
+	},
+];
+
 export const stacProperties: INodeProperties[] = [
 	...resourceProperties,
 	...operationProperties,
@@ -659,4 +756,5 @@ export const stacProperties: INodeProperties[] = [
 	...generateImageProperties,
 	...editImageProperties,
 	...generatePdfProperties,
+	...decisionProperties,
 ];
