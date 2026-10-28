@@ -147,8 +147,11 @@ export class Stac implements INodeType {
 		name: 'stac',
 		icon: { light: 'file:../../icons/stac-logo.svg', dark: 'file:../../icons/stac-logo.dark.svg' },
 		group: ['transform'],
-		version: [1, 1.1],
-		defaultVersion: 1.1,
+		// A versão mais nova precisa ser inteira: no Postgres, installed_nodes.latestVersion
+		// é integer e a instalação do pacote falha com 1.1. A 1.1 fica para os
+		// workflows já salvos com ela; 2 é igual a ela.
+		version: [1, 1.1, 2],
+		defaultVersion: 2,
 		subtitle: '={{ $parameter.operation + ": " + $parameter.resource }}',
 		description: 'Texto, imagem, OCR, PDF e decisões com os modelos da Stac',
 		defaults: { name: 'Stac' },

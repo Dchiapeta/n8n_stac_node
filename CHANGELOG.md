@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.5.1 — 2026-10-28
+
+- Corrige a instalação em n8n com Postgres ("invalid input syntax for type integer:
+  \"1.1\""): o n8n grava a versão mais nova do node numa coluna integer. O node **Stac**
+  passa a ter a versão 2 (igual à 1.1) como padrão; a 1.1 continua aceita para os
+  workflows já salvos com ela.
+
 ## 1.5.0 — 2026-10-22
 
 - Node **Stac** ganha o resource **Decision → Make a decision** (`POST /v1/decisions`),

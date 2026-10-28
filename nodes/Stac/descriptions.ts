@@ -35,7 +35,7 @@ const resourceOptions = [
 
 // O n8n só grava no workflow o que difere do default. A versão 1 (1.3.0) tinha
 // só Document, então ela mantém esse default: um workflow salvo nela não muda de
-// resource ao abrir. Nodes novos (1.1) começam em Text, como o node da OpenAI.
+// resource ao abrir. Nodes novos (1.1 e 2) começam em Text, como o node da OpenAI.
 export const resourceProperties: INodeProperties[] = [
 	{
 		displayName: 'Resource',
