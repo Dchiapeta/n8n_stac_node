@@ -8,6 +8,12 @@ import {
 	type ISupplyDataFunctions,
 	type SupplyData,
 } from 'n8n-workflow';
+import {
+	MAX_WAIT_ATTEMPTS,
+	headerValue,
+	retryDelayMs,
+	waitUnlessCancelled,
+} from '../Stac/transport';
 
 type ReasoningEffort = 'none' | 'low' | 'medium' | 'high';
 
@@ -35,6 +41,135 @@ function resolveMaxTokens(options: ModelOptions): number | undefined {
 	if (options.maxTokens !== undefined) return options.maxTokens;
 	if (options.reasoningEffort && options.reasoningEffort !== 'none') return undefined;
 	return DEFAULT_MAX_TOKENS;
+}
+
+// Espera pelo 503/429 + Retry-After do gateway (auto-wake/provisionamento),
+// com a mesma regra do node Stac (ver transport.ts).
+//
+// Por que um patch no AsyncCaller e não `onFailedAttempt` no supplyModel: o
+// handler do @n8n/ai-utilities (makeN8nLlmFailedAttemptHandler) só deixa
+// repetir quando `error.retriesLeft > 0`, mas o p-retry das versões testadas
+// passa retriesLeft no contexto, não no erro, e o AsyncCaller repassa só o
+// erro. Resultado: lança na primeira falha, com qualquer Max Retries; um
+// handler nosso passado ao supplyModel roda dentro desse wrapper e não muda
+// isso. O LangChain põe maxRetries: 0 no SDK da OpenAI, então o Retry-After
+// também não é lido lá. O ChatOpenAI 1.x delega para os submodelos
+// `completions`/`responses`, cada um com o seu caller: os três são embrulhados.
+//
+// Tudo é defensivo: se a estrutura do LangChain do n8n hospedeiro for outra
+// (campos ausentes), nada é embrulhado e o comportamento fica como antes.
+const PATCHED = Symbol.for('n8n-nodes-stac.retryAfterPatched');
+const CALL_STATE = Symbol.for('n8n-nodes-stac.retryAfterCallState');
+
+type CallState = { firstFailureAt?: number; waits: number };
+type FailedAttemptHandler = (error: unknown) => unknown;
+type PatchableCaller = {
+	onFailedAttempt?: FailedAttemptHandler;
+	call?: (callable: (...args: unknown[]) => unknown, ...args: unknown[]) => unknown;
+	callWithOptions?: (
+		options: unknown,
+		callable: (...args: unknown[]) => unknown,
+		...args: unknown[]
+	) => unknown;
+	[PATCHED]?: boolean;
+};
+
+// Estado por chamada do modelo: o caller é da instância e é reaproveitado em
+// todas as chamadas de um AI Agent (loop de tools), então o orçamento não pode
+// viver no caller. O callable de cada call() é embrulhado para carimbar no
+// erro o estado daquela chamada; o onFailedAttempt só recebe o erro.
+function tagErrors(
+	callable: (...args: unknown[]) => unknown,
+	state: CallState,
+): (...args: unknown[]) => Promise<unknown> {
+	return async (...args: unknown[]) => {
+		try {
+			return await callable(...args);
+		} catch (error) {
+			if (error && typeof error === 'object' && !(CALL_STATE in error)) {
+				try {
+					Object.defineProperty(error, CALL_STATE, { value: state, enumerable: false });
+				} catch {
+					// erro congelado: sem carimbo, cai no handler original
+				}
+			}
+			// Repassa o erro original de propósito: isto roda dentro do AsyncCaller,
+			// e o p-retry/LangChain/handler do n8n precisam do erro cru (status,
+			// headers). Quem converte em NodeApiError é o handler do n8n mais adiante.
+			// eslint-disable-next-line @n8n/community-nodes/require-node-api-error
+			throw error;
+		}
+	};
+}
+
+function patchCaller(caller: unknown, getSignal: () => AbortSignal | undefined): void {
+	try {
+		if (!caller || typeof caller !== 'object') return;
+		const c = caller as PatchableCaller;
+		if (c[PATCHED]) return;
+		const original = c.onFailedAttempt;
+		const originalCall = c.call;
+		if (typeof original !== 'function' || typeof originalCall !== 'function') return;
+		const originalCallWithOptions = c.callWithOptions;
+
+		c.call = function (callable, ...args) {
+			if (typeof callable !== 'function') return originalCall.call(this, callable, ...args);
+			return originalCall.call(this, tagErrors(callable, { waits: 0 }), ...args);
+		};
+		if (typeof originalCallWithOptions === 'function') {
+			c.callWithOptions = function (options, callable, ...args) {
+				if (typeof callable !== 'function') {
+					return originalCallWithOptions.call(this, options, callable, ...args);
+				}
+				return originalCallWithOptions.call(
+					this,
+					options,
+					tagErrors(callable, { waits: 0 }),
+					...args,
+				);
+			};
+		}
+		c.onFailedAttempt = async function (error: unknown) {
+			const state =
+				error && typeof error === 'object'
+					? ((error as { [CALL_STATE]?: CallState })[CALL_STATE] ?? undefined)
+					: undefined;
+			if (state && state.waits < MAX_WAIT_ATTEMPTS) {
+				const e = error as { status?: unknown; headers?: unknown };
+				const status = typeof e.status === 'number' ? e.status : undefined;
+				const now = Date.now();
+				const elapsed = state.firstFailureAt === undefined ? 0 : now - state.firstFailureAt;
+				const delay = retryDelayMs(status, headerValue(e.headers, 'retry-after'), elapsed, now);
+				if (delay !== undefined) {
+					state.firstFailureAt ??= now;
+					state.waits++;
+					// Retornar sem lançar faz o p-retry tentar de novo (até o Max
+					// Retries do caller). Cancelada: segue o handler original.
+					if (await waitUnlessCancelled(delay, getSignal)) return;
+				}
+			}
+			return original.call(this, error);
+		};
+		c[PATCHED] = true;
+	} catch {
+		// Nunca quebrar o node por causa do patch.
+	}
+}
+
+function patchRetryAfter(model: unknown, getSignal: () => AbortSignal | undefined): void {
+	try {
+		if (!model || typeof model !== 'object') return;
+		const m = model as {
+			caller?: unknown;
+			completions?: { caller?: unknown };
+			responses?: { caller?: unknown };
+		};
+		patchCaller(m.caller, getSignal);
+		patchCaller(m.completions?.caller, getSignal);
+		patchCaller(m.responses?.caller, getSignal);
+	} catch {
+		// idem
+	}
 }
 
 export class LmChatStac implements INodeType {
@@ -162,7 +297,7 @@ export class LmChatStac implements INodeType {
 		const model = this.getNodeParameter('model', itemIndex) as string;
 		const options = this.getNodeParameter('options', itemIndex, {}) as ModelOptions;
 
-		return supplyModel(this, {
+		const supplied = supplyModel(this, {
 			type: 'openai',
 			baseUrl: credentials.baseUrl as string,
 			apiKey: credentials.apiKey as string,
@@ -180,5 +315,14 @@ export class LmChatStac implements INodeType {
 			timeout: options.timeout,
 			maxRetries: options.maxRetries,
 		});
+		const getSignal = () => {
+			try {
+				return this.getExecutionCancelSignal?.();
+			} catch {
+				return undefined;
+			}
+		};
+		patchRetryAfter(supplied.response, getSignal);
+		return supplied;
 	}
 }

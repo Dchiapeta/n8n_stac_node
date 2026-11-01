@@ -35,7 +35,7 @@ Parameters:
 | **Maximum Number of Tokens** | Upper bound on tokens generated in the response. When the option isn't added, the node sends `2048` — or nothing (the server's floor of `8000` applies) when **Reasoning Effort** is `low`, `medium` or `high`. With reasoning on, values below `8000` can cut the reasoning off mid-way |
 | **Reasoning Effort** | `none`, `low`, `medium` or `high`, sent as `reasoning_effort`. When the option isn't added, the reasoning level configured on your API key applies |
 | **Timeout** | Request timeout in milliseconds (default `120000`). Under saturation Stac degrades speed, so aggressive values can cut off otherwise valid responses |
-| **Max Retries** | How many times to retry a failed request (default `2`) |
+| **Max Retries** | How many times to retry a failed request. When your machine is starting (the gateway answers `503`/`429` with `Retry-After`), the node waits the time the server asks for, up to ~3 min in total, within this number of attempts (empty: `6`). Note: in the tested versions of `@n8n/ai-utilities` a bug keeps other errors from being retried at all, whatever this value is |
 
 ### Stac
 
