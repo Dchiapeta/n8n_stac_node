@@ -37,6 +37,10 @@ const DEFAULT_MAX_TOKENS = 2048;
 // desligado: com raciocínio pedido, o gateway respeita o teto baixo e o
 // raciocínio é cortado no meio — resposta vazia. Então, com low/medium/high e
 // sem Max Tokens explícito, a request sai SEM max_tokens e vale o piso.
+// Sem Reasoning Effort (herdar o nível da chave), o 2048 sai mesmo assim: se a
+// chave tem raciocínio configurado, quem sobe o teto para o piso é o gateway
+// (validate_body), porque só ele conhece a política da chave. Se a chave não
+// tem política, o gateway respeita o 2048 e desliga o thinking.
 function resolveMaxTokens(options: ModelOptions): number | undefined {
 	if (options.maxTokens !== undefined) return options.maxTokens;
 	if (options.reasoningEffort && options.reasoningEffort !== 'none') return undefined;
@@ -227,7 +231,7 @@ export class LmChatStac implements INodeType {
 						type: 'number',
 						default: DEFAULT_MAX_TOKENS,
 						description:
-							'Teto de tokens da resposta, não uma meta de geração. Sem esta opção: 2048, ou o piso do servidor (8000) quando Reasoning Effort é Low, Medium ou High. Com raciocínio ligado, valores abaixo de 8000 podem cortar o raciocínio no meio.',
+							'Teto de tokens da resposta, não uma meta de geração. Sem esta opção: 2048, ou o piso do servidor (8000) quando Reasoning Effort é Low, Medium ou High. O servidor também sobe para 8000 quando a chave de API tem raciocínio configurado e você não pediu raciocínio na própria request. Se você pedir raciocínio (Reasoning Effort Low, Medium ou High) junto com um valor abaixo de 8000, o valor é respeitado e pode cortar o raciocínio no meio.',
 					},
 					{
 						displayName: 'Reasoning Effort',

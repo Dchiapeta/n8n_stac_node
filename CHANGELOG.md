@@ -1,5 +1,16 @@
 # Changelog
 
+## Não lançado
+
+- **Stac Chat Model**: sem a opção **Reasoning Effort**, o node manda `max_tokens=2048`.
+  Numa chave de API com raciocínio configurado (`default_reasoning_effort` low/medium/high),
+  esse teto cortava o raciocínio no meio e a resposta saía vazia (`finish_reason=length`).
+  A correção é no gateway: com raciocínio ligado pela configuração da chave ou da stack e
+  um teto do cliente abaixo de 8000, o servidor sobe o teto para 8000. Chave sem política
+  continua com 2048 e thinking desligado; raciocínio pedido na própria request com teto
+  baixo continua respeitando o teto. Neste pacote só mudam a descrição de **Maximum Number
+  of Tokens** e o README; o efeito depende do deploy do gateway, não de uma versão nova.
+
 ## 1.5.1 — 2026-10-28
 
 - Corrige a instalação em n8n com Postgres ("invalid input syntax for type integer:
