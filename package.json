@@ -48,8 +48,8 @@
 		]
 	},
 	"devDependencies": {
-		"@n8n/ai-node-sdk": "0.34.2",
-		"@n8n/node-cli": "^0.53.2",
+		"@n8n/ai-node-sdk": "0.35.6",
+		"@n8n/node-cli": "^0.54.6",
 		"eslint": "9.39.4",
 		"n8n-workflow": "2.44.1",
 		"prettier": "3.9.10",
